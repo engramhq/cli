@@ -1,8 +1,9 @@
 {
   "name": "@engramhq/cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "main": "index.mjs",
+  "repository": "https://github.com/engramhq/cli.git",
   "bin": {
     "eg": "index.mjs"
   }
