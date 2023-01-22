@@ -6,6 +6,8 @@ import FormData from "form-data";
 import tar from "tar";
 
 async function triggerDeploy() {
+  const startTime = new Date().getTime();
+
   const tmpDeployFilename = "deploy.tar.gz";
 
   await tar.create(
@@ -33,8 +35,8 @@ async function triggerDeploy() {
   form.append("tar", readStream);
 
   const split = process.cwd().split("/");
-  const defaultProjectName = split[split.length - 1]
-  form.append("project", defaultProjectName);
+  const project = split[split.length - 1]
+  form.append("project", project);
 
   const deployHost = process.env.HOST || "138.197.173.217:4242";
 
@@ -45,6 +47,11 @@ async function triggerDeploy() {
   });
 
   await fsPromise.unlink(tmpDeployFilename);
+
+  const accountName = "adam";
+  const endTime = new Date().getTime();
+  const totalDurationMs = endTime - startTime;
+  console.log(`Deployed to https://${project}-${accountName}.engramhq.xyz in ${totalDurationMs}ms`)
 }
 
 // TODO: Bring back when supporting node deployments
