@@ -32,6 +32,10 @@ async function triggerDeploy() {
   const form = new FormData();
   form.append("tar", readStream);
 
+  const split = process.cwd().split("/");
+  const defaultProjectName = split[split.length - 1]
+  form.append("project", defaultProjectName);
+
   const deployHost = process.env.HOST || "138.197.173.217:4242";
 
   await axios.post(`http://${deployHost}/deploy/upload`, form, {
