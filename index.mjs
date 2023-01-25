@@ -1,14 +1,15 @@
 #!/usr/bin/env node
+import { parseArgs } from "node:util";
 import fs from "fs";
 import fsPromise from "fs/promises";
 import axios from "axios";
 import FormData from "form-data";
 import tar from "tar";
 
-async function triggerDeploy() {
+async function triggerDeploy({ name, platform }) {
   const startTime = new Date().getTime();
 
-  const tmpDeployFilename = "deploy.tar.gz";
+  const tmpDeployFilename = `${name}.tar.gz`;
 
   await tar.create(
     {
@@ -30,14 +31,25 @@ async function triggerDeploy() {
     ["./"]
   );
 
-  const readStream = fs.createReadStream("deploy.tar.gz");
+  const readStream = fs.createReadStream(tmpDeployFilename);
   const form = new FormData();
   form.append("tar", readStream);
 
-  const split = process.cwd().split("/");
-  const project = split[split.length - 1]
-  form.append("project", project);
+  let nameToSend = name;
 
+  // Default name to folder name if none provided
+  if (!nameToSend) {
+    const split = process.cwd().split("/");
+    nameToSend = split[split.length - 1];
+  }
+  
+  form.append("name", name);
+
+  if (platform) {
+    form.append("platform", platform)
+  }
+
+  // TODO: this should be a domain not hard coded IP...
   const deployHost = process.env.HOST || "138.197.173.217:4242";
 
   await axios.post(`http://${deployHost}/deploy/upload`, form, {
@@ -51,37 +63,28 @@ async function triggerDeploy() {
   const accountName = "adam";
   const endTime = new Date().getTime();
   const totalDurationMs = endTime - startTime;
-  console.log(`Deployed to https://${project}-${accountName}.engramhq.xyz in ${totalDurationMs}ms`)
+  console.log(
+    `Deployed to https://${name}-${accountName}.engramhq.xyz in ${totalDurationMs}ms`
+  );
 }
 
-// TODO: Bring back when supporting node deployments
-// async function triggerDeploy() {
-//   const startTime = new Date().getTime();
+const args = [...process.argv];
+args.splice(0, 2);
+const { values, positionals } = parseArgs({
+  args,
+  options: {
+    name: {
+      type: "string",
+      short: "n",
+    },
+    platform: {
+      type: "string",
+      short: "p",
+    },
+  },
+  allowPositionals: true,
+});
 
-//   const packageJson = fs.readFileSync("package.json");
-//   const packageJsonContents = JSON.parse(packageJson);
-
-//   const { repository } = packageJsonContents.repository;
-
-//   // TODO: replace with proper domain
-//   const res = await fetch("http://138.197.173.217:4242/deploy", {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json"
-//     },
-//     body: JSON.stringify({
-//       repository
-//     })
-//   })
-
-//   const endTime = new Date().getTime();
-//   const deployTime = endTime - startTime;
-
-//   if (res.status === 200) {
-//     console.log(`Deployed in ${deployTime}ms`);
-//   }
-// }
-
-if (process.argv.length >= 3 && process.argv[2] === "deploy") {
-  triggerDeploy();
+if (positionals[0] === "deploy") {
+  triggerDeploy(values);
 }
