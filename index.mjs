@@ -14,6 +14,14 @@ import { stdin as input, stdout as output } from "node:process";
 const deployHost = process.env.HOST || "138.197.173.217:4242";
 
 async function triggerDeploy(values) {
+  const config = await getConfig();
+  if (!config?.token) {
+    console.log("Please login with `eg login`");
+    return;
+  }
+
+  const { token, username } = config;
+
   const { name, platform } = values || {};
   const startTime = new Date().getTime();
 
@@ -57,16 +65,16 @@ async function triggerDeploy(values) {
   await axios.post(`http://${deployHost}/deploy/upload`, form, {
     headers: {
       ...form.getHeaders(),
+      "x-access-token": token,
     },
   });
 
   await fsPromise.unlink(tmpDeployFilename);
 
-  const accountName = "adam";
   const endTime = new Date().getTime();
   const totalDurationMs = endTime - startTime;
   console.log(
-    `Deployed to https://${name}-${accountName}.engramhq.xyz in ${totalDurationMs}ms`
+    `Deployed to https://${name}-${username}.engramhq.xyz in ${totalDurationMs}ms`
   );
 }
 
@@ -86,7 +94,7 @@ async function handleSignup() {
     email,
     password,
   });
-  storeToken(res.data.token);
+  updateConfig(res.data);
 }
 
 async function handleLogin() {
@@ -103,36 +111,39 @@ async function handleLogin() {
     username,
     password,
   });
-  storeToken(res.data.token);
+  updateConfig(res.data);
 }
 
 const homeDir = os.homedir();
 const engramConfigFolder = path.join(homeDir, ".engram");
-const tokenPath = path.join(engramConfigFolder, "token")
+const configJsonPath = path.join(engramConfigFolder, "config.json");
 
-async function getToken() {
-  return fsPromise.readFile(tokenPath);
+async function getConfig() {
+  const jsonConfigString = await fsPromise.readFile(configJsonPath);
+  return JSON.parse(jsonConfigString);
 }
 
-async function storeToken(token) {
+async function updateConfig(newConfig) {
   await fsPromise.mkdir(engramConfigFolder, {
-    recursive: true
+    recursive: true,
   });
 
-  await fsPromise.writeFile(tokenPath, token);
+  await fsPromise.writeFile(configJsonPath, JSON.stringify(newConfig));
 }
 
 async function whoAmI() {
-  const token = await getToken();
-  if (!token) {
+  const config = await getConfig();
+  if (!config?.token) {
     console.log("Please login with `eg login`");
     return;
   }
 
+  const { token } = config;
+
   const res = await axios.get(`http://${deployHost}/me`, {
     headers: {
-      "x-access-token": token
-    }
+      "x-access-token": token,
+    },
   });
   console.log(res.data.data);
 }
