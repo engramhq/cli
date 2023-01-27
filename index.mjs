@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import * as readline from "node:readline/promises";
+import readline from "readline-sync";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import fs from "fs";
@@ -9,7 +9,6 @@ import path from "path";
 import FormData from "form-data";
 import tar from "tar";
 import os from "os";
-import { stdin as input, stdout as output } from "node:process";
 
 // TODO: this should be a domain not hard coded IP...
 const deployHost = process.env.HOST || "138.197.173.217:4242";
@@ -85,15 +84,12 @@ async function triggerDeploy(values) {
 }
 
 async function handleSignup() {
-  const rl = readline.createInterface({ input, output });
+  const username = await readline.question("Username: ");
+  const email = await readline.question("Email: ");
 
-  const username = await rl.question("Username?");
-  const email = await rl.question("Email?");
-
-  // TODO: prevent password from displaying
-  const password = await rl.question("Password?");
-
-  rl.close();
+  const password = await readline.question("Password: ", {
+    hideEchoBack: true
+  });
 
   const res = await axios.post(`http://${deployHost}/signup`, {
     username,
@@ -106,14 +102,11 @@ async function handleSignup() {
 }
 
 async function handleLogin() {
-  const rl = readline.createInterface({ input, output });
+  const username = await readline.question("Username: ");
 
-  const username = await rl.question("Username?");
-
-  // TODO: prevent password from displaying
-  const password = await rl.question("Password?");
-
-  rl.close();
+  const password = await readline.question("Password: ", {
+    hideEchoBack: true
+  });
 
   const res = await axios.post(`http://${deployHost}/login`, {
     username,
