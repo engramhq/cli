@@ -63,7 +63,7 @@ async function triggerDeploy(values) {
   }
 
   try {
-    await axios.post(`http://${deployHost}/deploy/upload`, form, {
+    const res = await axios.post(`http://${deployHost}/deploy/upload`, form, {
       headers: {
         ...form.getHeaders(),
         "x-access-token": token,
@@ -72,7 +72,7 @@ async function triggerDeploy(values) {
     const endTime = new Date().getTime();
     const totalDurationMs = endTime - startTime;
     console.log(
-      `Deployed to https://${name}-${username}.engramhq.xyz in ${totalDurationMs}ms`
+      `Deployed to ${res.data.data.url} in ${totalDurationMs}ms`
     );
   } catch (err) {
     if (err.response?.data?.data?.error) {
