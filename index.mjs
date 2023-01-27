@@ -9,6 +9,7 @@ import path from "path";
 import FormData from "form-data";
 import tar from "tar";
 import os from "os";
+import open from "open";
 
 // TODO: this should be a domain not hard coded IP...
 const deployHost = process.env.HOST || "138.197.173.217:4242";
@@ -22,7 +23,7 @@ async function triggerDeploy(values) {
 
   const { token } = config;
 
-  const { name, platform, path: pathToDeploy } = values || {};
+  const { name, platform, path: pathToDeploy, preview } = values || {};
   const startTime = new Date().getTime();
 
   const tmpDeployFilename = `${name}.tar.gz`;
@@ -73,6 +74,10 @@ async function triggerDeploy(values) {
     const endTime = new Date().getTime();
     const totalDurationMs = endTime - startTime;
     console.log(`Deployed to ${res.data.data.url} in ${totalDurationMs}ms`);
+
+    if (preview) {
+      open(res.data.data.url);
+    }
   } catch (err) {
     if (err.response?.data?.data?.error) {
       const message = err.response.data.data.error;
@@ -174,6 +179,10 @@ yargs(hideBin(process.argv))
     alias: "p",
     type: "string",
     description: "Platform to deploy (static|docker)",
+  })
+  .option("preview", {
+    type: "boolean",
+    default: true
   })
   .command("signup", "sign up for engram cloud account", () => {}, handleSignup)
   .command(
