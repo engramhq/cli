@@ -62,20 +62,26 @@ async function triggerDeploy(values) {
     form.append("platform", platform);
   }
 
-  await axios.post(`http://${deployHost}/deploy/upload`, form, {
-    headers: {
-      ...form.getHeaders(),
-      "x-access-token": token,
-    },
-  });
+  try {
+    await axios.post(`http://${deployHost}/deploy/upload`, form, {
+      headers: {
+        ...form.getHeaders(),
+        "x-access-token": token,
+      },
+    });
+    const endTime = new Date().getTime();
+    const totalDurationMs = endTime - startTime;
+    console.log(
+      `Deployed to https://${name}-${username}.engramhq.xyz in ${totalDurationMs}ms`
+    );
+  } catch (err) {
+    if (err.response?.data?.data?.error) {
+      const message = err.response.data.data.error;
+      console.error(message);
+    }
+  }
 
   await fsPromise.unlink(tmpDeployFilename);
-
-  const endTime = new Date().getTime();
-  const totalDurationMs = endTime - startTime;
-  console.log(
-    `Deployed to https://${name}-${username}.engramhq.xyz in ${totalDurationMs}ms`
-  );
 }
 
 async function handleSignup() {
