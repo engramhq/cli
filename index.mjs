@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as readline from "node:readline/promises";
-import { parseArgs } from "node:util";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 import fs from "fs";
 import fsPromise from "fs/promises";
 import axios from "axios";
@@ -20,9 +21,9 @@ async function triggerDeploy(values) {
     return;
   }
 
-  const { token, username } = config;
+  const { token } = config;
 
-  const { name, platform } = values || {};
+  const { name, platform, path: pathToDeploy } = values || {};
   const startTime = new Date().getTime();
 
   const tmpDeployFilename = `${name}.tar.gz`;
@@ -31,6 +32,7 @@ async function triggerDeploy(values) {
     {
       gzip: true,
       file: tmpDeployFilename,
+      cwd: pathToDeploy,
       filter: (path) => {
         const excludedPaths = [
           ".git",
@@ -41,7 +43,7 @@ async function triggerDeploy(values) {
         return !excludedPaths.includes(path);
       },
     },
-    ["./"]
+    ['./']
   );
 
   const readStream = fs.createReadStream(tmpDeployFilename);
@@ -71,9 +73,7 @@ async function triggerDeploy(values) {
     });
     const endTime = new Date().getTime();
     const totalDurationMs = endTime - startTime;
-    console.log(
-      `Deployed to ${res.data.data.url} in ${totalDurationMs}ms`
-    );
+    console.log(`Deployed to ${res.data.data.url} in ${totalDurationMs}ms`);
   } catch (err) {
     if (err.response?.data?.data?.error) {
       const message = err.response.data.data.error;
@@ -101,6 +101,8 @@ async function handleSignup() {
     password,
   });
   updateConfig(res.data);
+
+  console.log("Successfully created account. You can now deploy using 'eg deploy'");
 }
 
 async function handleLogin() {
@@ -118,6 +120,8 @@ async function handleLogin() {
     password,
   });
   updateConfig(res.data);
+
+  console.log(`Successfully logged in as ${username}`);
 }
 
 const homeDir = os.homedir();
@@ -154,29 +158,36 @@ async function whoAmI() {
   console.log(res.data.data);
 }
 
-const args = [...process.argv];
-args.splice(0, 2);
-const { values, positionals } = parseArgs({
-  args,
-  options: {
-    name: {
-      type: "string",
-      short: "n",
+yargs(hideBin(process.argv))
+  .command(
+    "deploy [path]",
+    "deploy the project to engram cloud",
+    (yargs) => {
+      return yargs.positional("path", {
+        describe: "name of project (used in final URL)",
+        default: "./",
+      });
     },
-    platform: {
-      type: "string",
-      short: "p",
-    },
-  },
-  allowPositionals: true,
-});
-
-if (positionals[0] === "deploy") {
-  triggerDeploy(values);
-} else if (positionals[0] === "signup") {
-  handleSignup(values);
-} else if (positionals[0] === "login") {
-  handleLogin(values);
-} else if (positionals[0] === "whoami") {
-  whoAmI(values);
-}
+    triggerDeploy
+  )
+  .option("name", {
+    alias: "n",
+    type: "string",
+    description:
+      "Updates the subdomain prefix https://${name}-${username}.cloud.engramhq.xyz",
+    default: "preview",
+  })
+  .option("platform", {
+    alias: "p",
+    type: "string",
+    description: "Platform to deploy (static|docker)",
+  })
+  .command("signup", "sign up for engram cloud account", () => {}, handleSignup)
+  .command(
+    "login",
+    "log in to your engram cloud account",
+    () => {},
+    handleLogin
+  )
+  .command("whoami", "returns current username", () => {}, whoAmI)
+  .parse();
