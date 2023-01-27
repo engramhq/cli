@@ -4,8 +4,10 @@ import { parseArgs } from "node:util";
 import fs from "fs";
 import fsPromise from "fs/promises";
 import axios from "axios";
+import path from "path";
 import FormData from "form-data";
 import tar from "tar";
+import os from "os";
 import { stdin as input, stdout as output } from "node:process";
 
 // TODO: this should be a domain not hard coded IP...
@@ -73,6 +75,8 @@ async function handleSignup() {
 
   const username = await rl.question("Username?");
   const email = await rl.question("Email?");
+
+  // TODO: prevent password from displaying
   const password = await rl.question("Password?");
 
   rl.close();
@@ -82,34 +86,55 @@ async function handleSignup() {
     email,
     password,
   });
-  console.log(res.data.token);
+  storeToken(res.data.token);
 }
 
 async function handleLogin() {
   const rl = readline.createInterface({ input, output });
 
   const username = await rl.question("Username?");
-  const email = await rl.question("Email?");
+
+  // TODO: prevent password from displaying
   const password = await rl.question("Password?");
 
   rl.close();
 
   const res = await axios.post(`http://${deployHost}/login`, {
     username,
-    email,
     password,
   });
-  console.log(res.data.token);
+  storeToken(res.data.token);
+}
+
+const homeDir = os.homedir();
+const engramConfigFolder = path.join(homeDir, ".engram");
+const tokenPath = path.join(engramConfigFolder, "token")
+
+async function getToken() {
+  return fsPromise.readFile(tokenPath);
+}
+
+async function storeToken(token) {
+  await fsPromise.mkdir(engramConfigFolder, {
+    recursive: true
+  });
+
+  await fsPromise.writeFile(tokenPath, token);
 }
 
 async function whoAmI() {
+  const token = await getToken();
+  if (!token) {
+    console.log("Please login with `eg login`");
+    return;
+  }
+
   const res = await axios.get(`http://${deployHost}/me`, {
     headers: {
-      // TODO: Read this from ~/.engram/token
-      "X-Access-Token": ""
+      "x-access-token": token
     }
   });
-  console.log(res.data);
+  console.log(res.data.data);
 }
 
 const args = [...process.argv];
