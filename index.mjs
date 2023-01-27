@@ -2,7 +2,7 @@
 import readline from "readline-sync";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import fs from "fs";
+import fs from "fs-extra";
 import fsPromise from "fs/promises";
 import axios from "axios";
 import path from "path";
@@ -10,6 +10,10 @@ import FormData from "form-data";
 import tar from "tar";
 import os from "os";
 import open from "open";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // TODO: this should be a domain not hard coded IP...
 const deployHost = process.env.HOST || "138.197.173.217:4242";
@@ -156,7 +160,31 @@ async function whoAmI() {
   console.log(res.data.data);
 }
 
+async function handleNewProject({ template, destination }) {
+  const templatePath = path.join(__dirname, 'templates', template);
+
+  fs.copySync(templatePath, destination);
+
+  console.log(`Template copied to ${destination}`);
+}
+
 yargs(hideBin(process.argv))
+  .command(
+    "new [destination]",
+    "creates a new project",
+    (yargs) => {
+      return yargs.positional("path", {
+        describe: "name of project (used in final URL)",
+        default: "./",
+      });
+    },
+    handleNewProject
+  )
+  .option('template', {
+    alias: 't',
+    type: 'string',
+    default: 'html'
+  })
   .command(
     "deploy [path]",
     "deploy the project to engram cloud",
