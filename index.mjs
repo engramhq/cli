@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import readline from "readline-sync";
+import { promisify } from "util";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import fs from "fs-extra";
@@ -68,10 +69,16 @@ async function triggerDeploy(values) {
     form.append("platform", platform);
   }
 
+  const getLengthAsync = promisify(form.getLength.bind(form));
+  const contentLength = await getLengthAsync();
+  // This is an ugly hack to deal with an Ubuntu 20 issue
+  form.getLengthSync = null;
+
   try {
     const res = await axios.post(`http://${deployHost}/deploy/upload`, form, {
       headers: {
         ...form.getHeaders(),
+        "Content-Length": contentLength,
         "x-access-token": token,
       },
     });
