@@ -75,25 +75,28 @@ async function triggerDeploy(values) {
   form.getLengthSync = null;
 
   try {
-    const res = await axios.post(`http://${deployHost}/deploy/upload`, form, {
+    const response = await axios.post(`http://${deployHost}/deploy/upload`, form, {
       headers: {
         ...form.getHeaders(),
         "Content-Length": contentLength,
         "x-access-token": token,
       },
+      responseType: "stream"
     });
-    const endTime = new Date().getTime();
-    const totalDurationMs = endTime - startTime;
-    console.log(`Deployed to ${res.data.data.url} in ${totalDurationMs}ms`);
 
-    if (preview) {
-      open(res.data.data.url);
-    }
+    const stream = response.data;
+
+    stream.on('data', data => {
+      console.log(String(data));
+    });
+
+    stream.on('end', () => {
+      const endTime = new Date().getTime();
+      const totalDurationMs = endTime - startTime;
+      console.log(`Deployed in ${totalDurationMs}ms`);
+    });
   } catch (err) {
-    if (err.response?.data?.data?.error) {
-      const message = err.response.data.data.error;
-      console.error(message);
-    }
+    console.error(err);
   }
 
   await fsPromise.unlink(tmpDeployFilename);
