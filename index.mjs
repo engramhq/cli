@@ -11,7 +11,7 @@ import FormData from "form-data";
 import tar from "tar";
 import os from "os";
 import open from "open";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,7 +55,7 @@ async function triggerDeploy(values) {
         return true;
       },
     },
-    ['./']
+    ["./"]
   );
 
   const readStream = fs.createReadStream(tmpDeployFilename);
@@ -82,28 +82,38 @@ async function triggerDeploy(values) {
   form.getLengthSync = null;
 
   try {
-    const response = await axios.post(`http://${deployHost}/deploy/upload`, form, {
-      headers: {
-        ...form.getHeaders(),
-        "Content-Length": contentLength,
-        "x-access-token": token,
-      },
-      responseType: "stream"
-    });
+    const response = await axios.post(
+      `http://${deployHost}/deploy/upload`,
+      form,
+      {
+        headers: {
+          ...form.getHeaders(),
+          "Content-Length": contentLength,
+          "x-access-token": token,
+        },
+        responseType: "stream",
+      }
+    );
 
     const stream = response.data;
 
-    stream.on('data', data => {
+    stream.on("data", (data) => {
       console.log(String(data));
     });
 
-    stream.on('end', () => {
+    stream.on("end", () => {
       const endTime = new Date().getTime();
       const totalDurationMs = endTime - startTime;
       console.log(`Deployed in ${totalDurationMs}ms`);
     });
   } catch (err) {
-    console.error(err);
+    if (err.response?.data) {
+      err.response?.data.on("data", (data) => {
+        console.log(String(data));
+      });
+    } else {
+      console.error(err);
+    }
   }
 
   await fsPromise.unlink(tmpDeployFilename);
@@ -114,7 +124,7 @@ async function handleSignup() {
   const email = await readline.question("Email: ");
 
   const password = await readline.question("Password: ", {
-    hideEchoBack: true
+    hideEchoBack: true,
   });
 
   const res = await axios.post(`http://${deployHost}/signup`, {
@@ -124,14 +134,16 @@ async function handleSignup() {
   });
   updateConfig(res.data);
 
-  console.log("Successfully created account. You can now deploy using 'eg deploy'");
+  console.log(
+    "Successfully created account. You can now deploy using 'eg deploy'"
+  );
 }
 
 async function handleLogin() {
   const username = await readline.question("Username: ");
 
   const password = await readline.question("Password: ", {
-    hideEchoBack: true
+    hideEchoBack: true,
   });
 
   const res = await axios.post(`http://${deployHost}/login`, {
@@ -178,7 +190,7 @@ async function whoAmI() {
 }
 
 async function handleNewProject({ template, destination }) {
-  const templatePath = path.join(__dirname, 'templates', template);
+  const templatePath = path.join(__dirname, "templates", template);
 
   fs.copySync(templatePath, destination);
 
@@ -197,10 +209,10 @@ yargs(hideBin(process.argv))
     },
     handleNewProject
   )
-  .option('template', {
-    alias: 't',
-    type: 'string',
-    default: 'html'
+  .option("template", {
+    alias: "t",
+    type: "string",
+    default: "html",
   })
   .command(
     "deploy [path]",
@@ -227,7 +239,7 @@ yargs(hideBin(process.argv))
   })
   .option("preview", {
     type: "boolean",
-    default: true
+    default: true,
   })
   .command("signup", "sign up for engram cloud account", () => {}, handleSignup)
   .command(
