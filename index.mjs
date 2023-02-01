@@ -45,7 +45,14 @@ async function triggerDeploy(values) {
           "node_modules",
           tmpDeployFilename,
         ];
-        return !excludedPaths.includes(path);
+
+        for (const excludedPath of excludedPaths) {
+          if (path.includes(excludedPath)) {
+            return false;
+          }
+        }
+
+        return true;
       },
     },
     ['./']
