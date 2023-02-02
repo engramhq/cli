@@ -20,13 +20,12 @@ COPY fe/ ./fe/
 
 RUN yarn --cwd fe build
 
-COPY ./.env ./.env
-
 FROM node:alpine
 
 WORKDIR /app
 
 COPY --from=build /app/be/built/server.js ./be/built/server.js
 COPY --from=build /app/fe/public ./fe/public/
+COPY ./.env ./.env
 
 CMD ["node", "be/built/server.js"]
