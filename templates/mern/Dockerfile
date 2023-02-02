@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM node:alpine as build
 
 WORKDIR /app
 
@@ -19,5 +19,14 @@ RUN yarn --cwd fe
 COPY fe/ ./fe/
 
 RUN yarn --cwd fe build
+
+COPY ./.env ./.env
+
+FROM node:alpine
+
+WORKDIR /app
+
+COPY --from=build /app/be/built/server.js ./be/built/server.js
+COPY --from=build /app/fe/public ./fe/public/
 
 CMD ["node", "be/built/server.js"]
