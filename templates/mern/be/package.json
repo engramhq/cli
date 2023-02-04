@@ -1,5 +1,5 @@
 {
-  "name": "",
+  "name": "engram-mern-be-template",
   "version": "1.0.0",
   "scripts": {
     "compile": "tsc --noEmit",
