@@ -127,12 +127,20 @@ async function handleSignup() {
     hideEchoBack: true,
   });
 
-  const res = await axios.post(`http://${deployHost}/signup`, {
-    username,
-    email,
-    password,
-  });
-  updateConfig(res.data);
+  try {
+    const res = await axios.post(`http://${deployHost}/signup`, {
+      username,
+      email,
+      password,
+    });
+    updateConfig(res.data);
+  } catch (err) {
+    if (err.response?.data) {
+      console.error(err.response?.data?.error);
+    } else {
+      console.error(err.message);
+    }
+  }
 
   console.log(
     "Successfully created account. You can now deploy using 'eg deploy'"
@@ -146,13 +154,20 @@ async function handleLogin() {
     hideEchoBack: true,
   });
 
-  const res = await axios.post(`http://${deployHost}/login`, {
-    username,
-    password,
-  });
-  updateConfig(res.data);
-
-  console.log(`Successfully logged in as ${username}`);
+  try {
+    const res = await axios.post(`http://${deployHost}/login`, {
+      username,
+      password,
+    });
+    updateConfig(res.data);
+    console.log(`Successfully logged in as ${username}`);
+  } catch (err) {
+    if (err.response?.data) {
+      console.error(err.response?.data?.error);
+    } else {
+      console.error(err.message);
+    }
+  }
 }
 
 const homeDir = os.homedir();
