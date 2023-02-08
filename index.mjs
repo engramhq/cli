@@ -10,8 +10,8 @@ import path from "path";
 import FormData from "form-data";
 import tar from "tar";
 import os from "os";
-import open from "open";
 import { fileURLToPath } from "url";
+import { exec } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,8 +28,13 @@ async function triggerDeploy(values) {
 
   const { token } = config;
 
-  const { name, platform, path: pathToDeploy, preview } = values || {};
+  const { name, platform, path: pathToDeploy, build } = values || {};
   const startTime = new Date().getTime();
+
+  if (build) {
+    const execAsync = promisify(exec);
+    await execAsync("npm install && npm run build");
+  }
 
   const tmpDeployFilename = `${name}.tar.gz`;
 
@@ -151,6 +156,7 @@ async function handleLogin() {
 
   const password = await readline.question("Password: ", {
     hideEchoBack: true,
+
   });
 
   try {
@@ -251,9 +257,11 @@ yargs(hideBin(process.argv))
     type: "string",
     description: "Platform to deploy (static|docker)",
   })
-  .option("preview", {
+  .option("build", {
+    alias: "b",
     type: "boolean",
-    default: true,
+    default: false,
+    description: "Call npm run build before deploying"
   })
   .command("signup", "sign up for engram cloud account", () => {}, handleSignup)
   .command(
