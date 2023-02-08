@@ -134,6 +134,9 @@ async function handleSignup() {
       password,
     });
     updateConfig(res.data);
+    console.log(
+      "Successfully created account. You can now deploy using 'eg deploy'"
+    );
   } catch (err) {
     if (err.response?.data) {
       console.error(err.response?.data?.error);
@@ -141,10 +144,6 @@ async function handleSignup() {
       console.error(err.message);
     }
   }
-
-  console.log(
-    "Successfully created account. You can now deploy using 'eg deploy'"
-  );
 }
 
 async function handleLogin() {
