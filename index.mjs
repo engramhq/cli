@@ -12,6 +12,12 @@ import tar from "tar";
 import os from "os";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
+import chokidar from "chokidar";
+import http from "http";
+
+http.globalAgent = new http.Agent({ keepAlive: true });
+
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,15 +34,45 @@ async function triggerDeploy(values) {
 
   const { token } = config;
 
-  const { name, platform, path: pathToDeploy, build } = values || {};
+  const { name, platform, path: pathToDeploy, build, watch } = values || {};
+
+  const tmpDeployFilename = `${name}.tar.gz`;
+
+  const bindedDeploy = deploy.bind(this, {
+    name,
+    platform,
+    pathToDeploy,
+    build,
+    watch,
+    token,
+    tmpDeployFilename,
+  });
+
+  if (watch) {
+    const watcher = chokidar.watch(pathToDeploy, {
+      ignored: [tmpDeployFilename],
+    });
+    watcher.on("change", () => {
+      bindedDeploy();
+    });
+  }
+
+  await bindedDeploy();
+}
+
+async function deploy({
+  build,
+  name,
+  pathToDeploy,
+  platform,
+  token,
+  tmpDeployFilename,
+}) {
   const startTime = new Date().getTime();
 
   if (build) {
-    const execAsync = promisify(exec);
-    await execAsync("npm install && npm run build");
+    await execAsync("npm run build");
   }
-
-  const tmpDeployFilename = `${name}.tar.gz`;
 
   await tar.create(
     {
@@ -156,7 +192,6 @@ async function handleLogin() {
 
   const password = await readline.question("Password: ", {
     hideEchoBack: true,
-
   });
 
   try {
@@ -215,6 +250,10 @@ async function handleNewProject({ template, destination }) {
   fs.copySync(templatePath, destination);
 
   console.log(`Template copied to ${destination}`);
+
+  console.log(`Running npm install`);
+
+  await execAsync(`npm install --prefix ${destination}`);
 }
 
 yargs(hideBin(process.argv))
@@ -261,7 +300,13 @@ yargs(hideBin(process.argv))
     alias: "b",
     type: "boolean",
     default: false,
-    description: "Call npm run build before deploying"
+    description: "Call npm run build before deploying",
+  })
+  .option("watch", {
+    alias: "w",
+    type: "boolean",
+    default: false,
+    description: "Watches for file changes and auto deploys on changes",
   })
   .command("signup", "sign up for engram cloud account", () => {}, handleSignup)
   .command(
