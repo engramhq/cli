@@ -292,10 +292,6 @@ async function handleNewProject({ template, destination }) {
   fs.copySync(templatePath, destination);
 
   console.log(`Template copied to ${destination}`);
-
-  console.log(`Running npm install`);
-
-  await execAsync(`npm install --prefix ${destination}`);
 }
 
 yargs(hideBin(process.argv))
