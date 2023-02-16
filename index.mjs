@@ -52,12 +52,55 @@ async function triggerDeploy(values) {
     const watcher = chokidar.watch(pathToDeploy, {
       ignored: [tmpDeployFilename],
     });
-    watcher.on("change", () => {
-      bindedDeploy();
+    watcher.on("change", (filename) => {
+      handleFileChanged({
+        filename,
+        name,
+        token
+      })
     });
   }
 
   await bindedDeploy();
+}
+
+async function handleFileChanged({filename, name, token}) {
+  const startTime = new Date().getTime();
+  const readStream = fs.createReadStream(filename);
+  const form = new FormData();
+  form.append("name", name);
+  form.append("file", readStream);
+
+  const getLengthAsync = promisify(form.getLength.bind(form));
+  const contentLength = await getLengthAsync();
+  // This is an ugly hack to deal with an Ubuntu 20 issue
+  form.getLengthSync = null;
+
+  try {
+    await axios.post(
+      `http://${deployHost}/deploy/upload/file`,
+      form,
+      {
+        headers: {
+          ...form.getHeaders(),
+          "Content-Length": contentLength,
+          "x-access-token": token,
+        },
+      }
+    );
+
+    const endTime = new Date().getTime();
+    const totalDurationMs = endTime - startTime;
+    console.log(`Deployed in ${totalDurationMs}ms`);
+  } catch (err) {
+    if (err.response?.data) {
+      err.response?.data.on("data", (data) => {
+        console.log(String(data));
+      });
+    } else {
+      console.error(err);
+    }
+  }
 }
 
 async function deploy({
