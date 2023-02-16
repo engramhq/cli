@@ -69,6 +69,7 @@ async function handleFileChanged({filename, name, token}) {
   const readStream = fs.createReadStream(filename);
   const form = new FormData();
   form.append("name", name);
+  form.append("filename", filename);
   form.append("file", readStream);
 
   const getLengthAsync = promisify(form.getLength.bind(form));
@@ -94,9 +95,7 @@ async function handleFileChanged({filename, name, token}) {
     console.log(`Deployed in ${totalDurationMs}ms`);
   } catch (err) {
     if (err.response?.data) {
-      err.response?.data.on("data", (data) => {
-        console.log(String(data));
-      });
+      console.log(String(err.response?.data));
     } else {
       console.error(err);
     }
