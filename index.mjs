@@ -34,7 +34,7 @@ async function triggerDeploy(values) {
 
   const { token } = config;
 
-  const { name, platform, path: pathToDeploy, build, watch } = values || {};
+  const { name, platform, path: pathToDeploy, build, watch, privacy } = values || {};
 
   const tmpDeployFilename = `${name}.tar.gz`;
 
@@ -46,6 +46,7 @@ async function triggerDeploy(values) {
     watch,
     token,
     tmpDeployFilename,
+    privacy
   });
 
   if (watch) {
@@ -109,6 +110,7 @@ async function deploy({
   platform,
   token,
   tmpDeployFilename,
+  privacy
 }) {
   const startTime = new Date().getTime();
 
@@ -158,6 +160,8 @@ async function deploy({
   if (platform) {
     form.append("platform", platform);
   }
+
+  form.append("privacy", privacy);
 
   const getLengthAsync = promisify(form.getLength.bind(form));
   const contentLength = await getLengthAsync();
@@ -339,6 +343,11 @@ yargs(hideBin(process.argv))
     type: "boolean",
     default: false,
     description: "Call npm run build before deploying",
+  })
+  .option("privacy", {
+    type: "string",
+    default: "private",
+    description: "Deployments are private by default set to public to make publicly accessible"
   })
   .option("watch", {
     alias: "w",
