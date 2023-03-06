@@ -34,38 +34,90 @@ async function triggerDeploy(values) {
 
   const { token } = config;
 
-  const { name, platform, path: pathToDeploy, build, watch, privacy } = values || {};
-
-  const tmpDeployFilename = `${name}.tar.gz`;
-
-  const bindedDeploy = deploy.bind(this, {
+  const {
     name,
     platform,
-    pathToDeploy,
+    path: pathToDeploy,
     build,
     watch,
-    token,
-    tmpDeployFilename,
-    privacy
-  });
+    privacy,
+    repo,
+    branch,
+    init
+  } = values || {};
 
-  if (watch) {
-    const watcher = chokidar.watch(pathToDeploy, {
-      ignored: [tmpDeployFilename],
+  if (!repo) {
+    const tmpDeployFilename = `${name}.tar.gz`;
+
+    const bindedDeploy = deploy.bind(this, {
+      name,
+      platform,
+      pathToDeploy,
+      build,
+      watch,
+      token,
+      tmpDeployFilename,
+      privacy,
     });
-    watcher.on("change", (filename) => {
-      handleFileChanged({
-        filename,
-        name,
-        token
-      })
-    });
+
+    if (watch) {
+      const watcher = chokidar.watch(pathToDeploy, {
+        ignored: [tmpDeployFilename],
+      });
+      watcher.on("change", (filename) => {
+        handleFileChanged({
+          filename,
+          name,
+          token,
+        });
+      });
+    }
+
+    await bindedDeploy();
+  } else {
+    try {
+      const startTime = new Date().getTime();
+      const response = await axios.post(
+        `http://${deployHost}/deploy/git`,
+        {
+          name,
+          repo,
+          branch,
+          privacy,
+          init
+        },
+        {
+          headers: {
+            "x-access-token": token,
+          },
+          responseType: "stream",
+        }
+      );
+
+      const stream = response.data;
+
+      stream.on("data", (data) => {
+        console.log(String(data));
+      });
+
+      stream.on("end", () => {
+        const endTime = new Date().getTime();
+        const totalDurationMs = endTime - startTime;
+        console.log(`Deployed in ${totalDurationMs}ms`);
+      });
+    } catch (err) {
+      if (err.response?.data) {
+        err.response?.data.on("data", (data) => {
+          console.log(String(data));
+        });
+      } else {
+        console.error(err);
+      }
+    }
   }
-
-  await bindedDeploy();
 }
 
-async function handleFileChanged({filename, name, token}) {
+async function handleFileChanged({ filename, name, token }) {
   const startTime = new Date().getTime();
   const readStream = fs.createReadStream(filename);
   const form = new FormData();
@@ -79,17 +131,13 @@ async function handleFileChanged({filename, name, token}) {
   form.getLengthSync = null;
 
   try {
-    await axios.post(
-      `http://${deployHost}/deploy/upload/file`,
-      form,
-      {
-        headers: {
-          ...form.getHeaders(),
-          "Content-Length": contentLength,
-          "x-access-token": token,
-        },
-      }
-    );
+    await axios.post(`http://${deployHost}/deploy/upload/file`, form, {
+      headers: {
+        ...form.getHeaders(),
+        "Content-Length": contentLength,
+        "x-access-token": token,
+      },
+    });
 
     const endTime = new Date().getTime();
     const totalDurationMs = endTime - startTime;
@@ -110,7 +158,7 @@ async function deploy({
   platform,
   token,
   tmpDeployFilename,
-  privacy
+  privacy,
 }) {
   const startTime = new Date().getTime();
 
@@ -338,6 +386,20 @@ yargs(hideBin(process.argv))
     type: "string",
     description: "Platform to deploy (static|docker)",
   })
+  .option("init", {
+    type: "boolean",
+    default: false
+  })
+  .option("repo", {
+    alias: "r",
+    type: "string",
+    description: "Repository URL to deploy",
+  })
+  .option("branch", {
+    type: "string",
+    default: "main",
+    description: "Branch to deploy",
+  })
   .option("build", {
     alias: "b",
     type: "boolean",
@@ -347,7 +409,8 @@ yargs(hideBin(process.argv))
   .option("privacy", {
     type: "string",
     default: "private",
-    description: "Deployments are private by default set to public to make publicly accessible"
+    description:
+      "Deployments are private by default set to public to make publicly accessible",
   })
   .option("watch", {
     alias: "w",
