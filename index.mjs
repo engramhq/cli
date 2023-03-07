@@ -84,7 +84,8 @@ async function triggerDeploy(values) {
           repo,
           branch,
           privacy,
-          init
+          init,
+          platform
         },
         {
           headers: {
