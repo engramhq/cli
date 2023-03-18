@@ -14,6 +14,7 @@ import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import chokidar from "chokidar";
 import http from "http";
+import { getCurrentBranch, getRepositoryUrl } from "./GitUtils.mjs";
 
 http.globalAgent = new http.Agent({ keepAlive: true });
 
@@ -34,7 +35,7 @@ async function triggerDeploy(values) {
 
   const { token } = config;
 
-  const {
+  let {
     name,
     platform,
     path: pathToDeploy,
@@ -45,6 +46,18 @@ async function triggerDeploy(values) {
     branch,
     init
   } = values || {};
+
+  if (!repo) {
+    try {
+      repo = await getRepositoryUrl();
+    } catch(err) {
+      // Not a repository, that's ok
+    }
+
+    if (!branch) {
+      branch = await getCurrentBranch();
+    }
+  }
 
   if (!repo) {
     const tmpDeployFilename = `${name}.tar.gz`;
