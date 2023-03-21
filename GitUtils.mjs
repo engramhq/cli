@@ -5,7 +5,7 @@ const execPromise = util.promisify(exec);
 
 export async function getRepositoryUrl() {
     const { stdout } = await execPromise("git remote get-url origin");
-    return convertSSHRepoToHTTPS(stdout);
+    return convertSSHRepoToHTTPS(stdout.trim());
 }
 
 export function convertSSHRepoToHTTPS(repo) {
@@ -17,5 +17,5 @@ export function convertSSHRepoToHTTPS(repo) {
 
 export async function getCurrentBranch() {
     const { stdout } = await execPromise("git rev-parse --abbrev-ref HEAD");
-    return stdout;
+    return stdout.trim();
 }

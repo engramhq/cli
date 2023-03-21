@@ -412,7 +412,6 @@ yargs(hideBin(process.argv))
   })
   .option("branch", {
     type: "string",
-    default: "main",
     description: "Branch to deploy",
   })
   .option("build", {
