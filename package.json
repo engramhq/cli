@@ -1,11 +1,14 @@
 {
   "name": "@engramhq/cli",
-  "version": "0.0.36",
+  "version": "0.0.37",
   "type": "module",
   "main": "index.mjs",
   "repository": "https://github.com/engramhq/cli.git",
   "bin": {
     "eg": "index.mjs"
+  },
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
     "axios": "^1.2.3",
@@ -15,5 +18,8 @@
     "readline-sync": "^1.4.10",
     "tar": "^6.1.13",
     "yargs": "^17.6.2"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0"
   }
 }
