@@ -49,14 +49,13 @@ async function triggerDeploy(values) {
 
   if (!repo) {
     try {
-      // TODO: how to convert from SSH to HTTPS
       repo = await getRepositoryUrl();
+
+      if (!branch) {
+        branch = await getCurrentBranch();
+      }
     } catch(err) {
       // Not a repository, that's ok
-    }
-
-    if (!branch) {
-      branch = await getCurrentBranch();
     }
   }
 
