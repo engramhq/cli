@@ -2,10 +2,9 @@
   "name": "engram-express-template",
   "version": "1.0.0",
   "description": "",
-  "main": "index.mjs",
   "scripts": {
     "build": "esbuild index.ts --bundle --platform=node --outfile=built/index.js",
-    "start": "node index.mjs"
+    "start": "node built/index.js"
   },
   "author": "",
   "license": "MIT",
