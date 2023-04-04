@@ -24,7 +24,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // TODO: this should be a domain not hard coded IP...
-const deployHost = process.env.HOST || "138.197.173.217:4242";
+const baseUrl = process.env.BASE_URL || "http://138.197.173.217:4242";
 
 async function triggerDeploy(values) {
   const config = await getConfig();
@@ -42,12 +42,13 @@ async function triggerDeploy(values) {
     build,
     watch,
     privacy,
+    source,
     repo,
     branch,
     init
   } = values || {};
 
-  if (!repo) {
+  if (source !== 'local' && !repo) {
     try {
       repo = await getRepositoryUrl();
 
@@ -91,7 +92,7 @@ async function triggerDeploy(values) {
     try {
       const startTime = new Date().getTime();
       const response = await axios.post(
-        `http://${deployHost}/deploy/git`,
+        `${baseUrl}/deploy/git`,
         {
           name,
           repo,
@@ -145,7 +146,7 @@ async function handleFileChanged({ filename, name, token }) {
   form.getLengthSync = null;
 
   try {
-    await axios.post(`http://${deployHost}/deploy/upload/file`, form, {
+    await axios.post(`${baseUrl}/deploy/upload/file`, form, {
       headers: {
         ...form.getHeaders(),
         "Content-Length": contentLength,
@@ -232,7 +233,7 @@ async function deploy({
 
   try {
     const response = await axios.post(
-      `http://${deployHost}/deploy/upload`,
+      `${baseUrl}/api/deployments`,
       form,
       {
         headers: {
@@ -277,7 +278,7 @@ async function handleSignup() {
   });
 
   try {
-    const res = await axios.post(`http://${deployHost}/signup`, {
+    const res = await axios.post(`${baseUrl}/api/users/signup`, {
       username,
       email,
       password,
@@ -303,7 +304,7 @@ async function handleLogin() {
   });
 
   try {
-    const res = await axios.post(`http://${deployHost}/login`, {
+    const res = await axios.post(`${baseUrl}/api/users/login`, {
       username,
       password,
     });
@@ -344,7 +345,7 @@ async function whoAmI() {
 
   const { token } = config;
 
-  const res = await axios.get(`http://${deployHost}/me`, {
+  const res = await axios.get(`${baseUrl}/api/users/me`, {
     headers: {
       "x-access-token": token,
     },
@@ -412,6 +413,10 @@ yargs(hideBin(process.argv))
   .option("branch", {
     type: "string",
     description: "Branch to deploy",
+  })
+  .option("source", {
+    type: "string",
+    description: "Source to deploy from (local|git)"
   })
   .option("build", {
     alias: "b",
