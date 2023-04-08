@@ -54,7 +54,7 @@ async function triggerDeploy(values) {
   if(dev) {
     baseUrl = port ? `http://local.engram.sh:${port}` : 'http://local.engram.sh:8000'
   }
-  else if (v1) { //Dubsado
+  else if (v1) {
     baseUrl = 'http://138.197.173.217:4242'
   }
 
