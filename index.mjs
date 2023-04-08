@@ -24,7 +24,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // TODO: this should be a domain not hard coded IP...
-const deployHost = process.env.HOST || "138.197.173.217:4242";
+let baseUrl = process.env.BASE_URL || "https://engram.sh";
 
 async function triggerDeploy(values) {
   const config = await getConfig();
@@ -42,12 +42,23 @@ async function triggerDeploy(values) {
     build,
     watch,
     privacy,
+    source,
+    dev,
+    port,
+    v1,
     repo,
     branch,
     init
   } = values || {};
 
-  if (!repo) {
+  if(dev) {
+    baseUrl = port ? `http://local.engram.sh:${port}` : 'http://local.engram.sh:8000'
+  }
+  else if (v1) {
+    baseUrl = 'http://138.197.173.217:4242'
+  }
+
+  if (source !== 'local' && !repo) {
     try {
       repo = await getRepositoryUrl();
 
@@ -91,7 +102,7 @@ async function triggerDeploy(values) {
     try {
       const startTime = new Date().getTime();
       const response = await axios.post(
-        `http://${deployHost}/deploy/git`,
+        `${baseUrl}/deploy/git`,
         {
           name,
           repo,
@@ -145,7 +156,7 @@ async function handleFileChanged({ filename, name, token }) {
   form.getLengthSync = null;
 
   try {
-    await axios.post(`http://${deployHost}/deploy/upload/file`, form, {
+    await axios.post(`${baseUrl}/deploy/upload/file`, form, {
       headers: {
         ...form.getHeaders(),
         "Content-Length": contentLength,
@@ -232,7 +243,7 @@ async function deploy({
 
   try {
     const response = await axios.post(
-      `http://${deployHost}/deploy/upload`,
+      `${baseUrl}/api/deployments`,
       form,
       {
         headers: {
@@ -269,6 +280,9 @@ async function deploy({
 }
 
 async function handleSignup() {
+
+  isDev(values.dev);
+
   const username = await readline.question("Username: ");
   const email = await readline.question("Email: ");
 
@@ -277,7 +291,7 @@ async function handleSignup() {
   });
 
   try {
-    const res = await axios.post(`http://${deployHost}/signup`, {
+    const res = await axios.post(`${baseUrl}/api/users/signup`, {
       username,
       email,
       password,
@@ -295,7 +309,10 @@ async function handleSignup() {
   }
 }
 
-async function handleLogin() {
+async function handleLogin(values) {
+  
+  isDev(values.dev);
+
   const username = await readline.question("Username: ");
 
   const password = await readline.question("Password: ", {
@@ -303,7 +320,7 @@ async function handleLogin() {
   });
 
   try {
-    const res = await axios.post(`http://${deployHost}/login`, {
+    const res = await axios.post(`${baseUrl}/api/users/login`, {
       username,
       password,
     });
@@ -336,6 +353,9 @@ async function updateConfig(newConfig) {
 }
 
 async function whoAmI() {
+
+  isDev(values.dev);
+
   const config = await getConfig();
   if (!config?.token) {
     console.log("Please login with `eg login`");
@@ -344,7 +364,7 @@ async function whoAmI() {
 
   const { token } = config;
 
-  const res = await axios.get(`http://${deployHost}/me`, {
+  const res = await axios.get(`${baseUrl}/api/users/me`, {
     headers: {
       "x-access-token": token,
     },
@@ -358,6 +378,12 @@ async function handleNewProject({ template, destination }) {
   fs.copySync(templatePath, destination);
 
   console.log(`Template copied to ${destination}`);
+}
+
+function isDev(dev, port) {
+  if(dev) {
+    baseUrl = port ? `http://local.engram.sh:${port}` : 'http://local.engram.sh:8000'
+  }
 }
 
 yargs(hideBin(process.argv))
@@ -412,6 +438,22 @@ yargs(hideBin(process.argv))
   .option("branch", {
     type: "string",
     description: "Branch to deploy",
+  })
+  .option("source", {
+    type: "string",
+    description: "Source to deploy from (local|git)"
+  })
+  .option("v1", {
+    type: "boolean",
+    description: "Deploy to the old IP"
+  })
+  .option("dev", {
+    type: "boolean",
+    description: "Deploy to localhost (local.engram.sh)"
+  })
+  .option('port', {
+    type: "string",
+    description: "Port used by local.engram.sh (default 8000)"
   })
   .option("build", {
     alias: "b",
