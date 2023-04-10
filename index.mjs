@@ -279,7 +279,7 @@ async function deploy({
   await fsPromise.unlink(tmpDeployFilename);
 }
 
-async function handleSignup() {
+async function handleSignup(values) {
 
   isDev(values.dev);
 
