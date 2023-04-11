@@ -26,13 +26,20 @@ const __dirname = path.dirname(__filename);
 // TODO: this should be a domain not hard coded IP...
 let baseUrl = process.env.BASE_URL || "https://engram.sh";
 
+async function triggerPreview(values) {
+  triggerDeploy({
+    ...values, 
+    preview: true
+  });
+}
+
 async function triggerDeploy(values) {
   const config = await getConfig();
   if (!config?.token) {
     console.log("Please login with `eg login`");
     return;
   }
-
+  
   const { token } = config;
 
   let {
@@ -42,6 +49,7 @@ async function triggerDeploy(values) {
     build,
     watch,
     privacy,
+    preview,
     source,
     dev,
     port,
@@ -82,6 +90,7 @@ async function triggerDeploy(values) {
       token,
       tmpDeployFilename,
       privacy,
+      preview
     });
 
     if (watch) {
@@ -100,7 +109,6 @@ async function triggerDeploy(values) {
     await bindedDeploy();
   } else {
     try {
-      const startTime = new Date().getTime();
       const response = await axios.post(
         `${baseUrl}/deploy/git`,
         {
@@ -125,11 +133,6 @@ async function triggerDeploy(values) {
         console.log(String(data));
       });
 
-      stream.on("end", () => {
-        const endTime = new Date().getTime();
-        const totalDurationMs = endTime - startTime;
-        console.log(`Deployed in ${totalDurationMs}ms`);
-      });
     } catch (err) {
       if (err.response?.data) {
         err.response?.data.on("data", (data) => {
@@ -143,7 +146,6 @@ async function triggerDeploy(values) {
 }
 
 async function handleFileChanged({ filename, name, token }) {
-  const startTime = new Date().getTime();
   const readStream = fs.createReadStream(filename);
   const form = new FormData();
   form.append("name", name);
@@ -164,9 +166,6 @@ async function handleFileChanged({ filename, name, token }) {
       },
     });
 
-    const endTime = new Date().getTime();
-    const totalDurationMs = endTime - startTime;
-    console.log(`Deployed in ${totalDurationMs}ms`);
   } catch (err) {
     if (err.response?.data) {
       console.log(String(err.response?.data));
@@ -184,9 +183,8 @@ async function deploy({
   token,
   tmpDeployFilename,
   privacy,
+  preview
 }) {
-  const startTime = new Date().getTime();
-
   if (build) {
     await execAsync("npm run build");
   }
@@ -230,6 +228,10 @@ async function deploy({
 
   form.append("name", name);
 
+  if(preview) {
+    form.append("previewEnabled", String(preview));
+  }
+
   if (platform) {
     form.append("platform", platform);
   }
@@ -261,11 +263,6 @@ async function deploy({
       console.log(String(data));
     });
 
-    stream.on("end", () => {
-      const endTime = new Date().getTime();
-      const totalDurationMs = endTime - startTime;
-      console.log(`Deployed in ${totalDurationMs}ms`);
-    });
   } catch (err) {
     if (err.response?.data) {
       err.response?.data.on("data", (data) => {
@@ -481,4 +478,5 @@ yargs(hideBin(process.argv))
     handleLogin
   )
   .command("whoami", "returns current username", () => {}, whoAmI)
+  .command("preview", "Similar to eg deploy but enables preview UI (Comments, pins, etc)", () => {}, triggerPreview)
   .parse();
