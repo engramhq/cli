@@ -27,16 +27,19 @@ const __dirname = path.dirname(__filename);
 let baseUrl = process.env.BASE_URL || "https://engram.sh";
 
 async function triggerPreview(values) {
-  triggerDeploy(values, true);
+  triggerDeploy({
+    ...values, 
+    preview: true
+  });
 }
 
-async function triggerDeploy(values, preview) {
+async function triggerDeploy(values) {
   const config = await getConfig();
   if (!config?.token) {
     console.log("Please login with `eg login`");
     return;
   }
-
+  
   const { token } = config;
 
   let {
@@ -46,6 +49,7 @@ async function triggerDeploy(values, preview) {
     build,
     watch,
     privacy,
+    preview,
     source,
     dev,
     port,
