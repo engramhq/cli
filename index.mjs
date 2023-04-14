@@ -134,13 +134,7 @@ async function triggerDeploy(values) {
       });
 
     } catch (err) {
-      if (err.response?.data) {
-        err.response?.data.on("data", (data) => {
-          console.log(String(data));
-        });
-      } else {
-        console.error(err);
-      }
+      errorHandler({err, isStream: true});
     }
   }
 }
@@ -167,11 +161,7 @@ async function handleFileChanged({ filename, name, token }) {
     });
 
   } catch (err) {
-    if (err.response?.data) {
-      console.log(String(err.response?.data));
-    } else {
-      console.error(err);
-    }
+    errorHandler(err);
   }
 }
 
@@ -264,13 +254,7 @@ async function deploy({
     });
 
   } catch (err) {
-    if (err.response?.data) {
-      err.response?.data.on("data", (data) => {
-        console.log(String(data));
-      });
-    } else {
-      console.error(err);
-    }
+    errorHandler({err, isStream: true});
   }
 
   await fsPromise.unlink(tmpDeployFilename);
@@ -298,11 +282,7 @@ async function handleSignup(values) {
       "Successfully created account. You can now deploy using 'eg deploy'"
     );
   } catch (err) {
-    if (err.response?.data) {
-      console.error(err.response?.data?.error);
-    } else {
-      console.error(err.message);
-    }
+    errorHandler(err);
   }
 }
 
@@ -324,11 +304,7 @@ async function handleLogin(values) {
     updateConfig(res.data);
     console.log(`Successfully logged in as ${username}`);
   } catch (err) {
-    if (err.response?.data) {
-      console.error(err.response?.data?.error);
-    } else {
-      console.error(err.message);
-    }
+    errorHandler({err});
   }
 }
 
@@ -349,24 +325,34 @@ async function updateConfig(newConfig) {
   await fsPromise.writeFile(configJsonPath, JSON.stringify(newConfig));
 }
 
-async function whoAmI() {
+async function whoAmI(values) {
+  try {
+      isDev(values.dev);
+    
+      const config = await getConfig();
+      if (!config?.token) {
+        console.log("Please login with `eg login`");
+        return;
+      }
+    
+      const { token } = config;
+    
+      const res = await axios.get(`${baseUrl}/api/users/me`, {
+        headers: {
+          "x-access-token": token,
+        },
+      });
 
-  isDev(values.dev);
+      if(res.data.username) {
+        console.log(res.data.username);
+      }
+      else {
+        throw new Error('User not found')
+      }
 
-  const config = await getConfig();
-  if (!config?.token) {
-    console.log("Please login with `eg login`");
-    return;
+  } catch(err) {
+    errorHandler({err})
   }
-
-  const { token } = config;
-
-  const res = await axios.get(`${baseUrl}/api/users/me`, {
-    headers: {
-      "x-access-token": token,
-    },
-  });
-  console.log(res.data.data);
 }
 
 async function handleNewProject({ template, destination }) {
@@ -380,6 +366,21 @@ async function handleNewProject({ template, destination }) {
 function isDev(dev, port) {
   if(dev) {
     baseUrl = port ? `http://local.engram.sh:${port}` : 'http://local.engram.sh:8000'
+  }
+}
+
+function errorHandler({err, isStream}) {
+  if (err.response?.data) {
+    if(isStream) {
+      err.response?.data.on("data", (data) => {
+        console.log(String(data)); //CONT: test this with String() and without
+      });
+    }
+    else {
+      console.error(err.response.data);
+    }
+  } else {
+    console.error(err);
   }
 }
 
