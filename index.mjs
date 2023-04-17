@@ -370,17 +370,23 @@ function isDev(dev, port) {
 }
 
 function errorHandler({err, isStream}) {
-  if (err.response?.data) {
-    if(isStream) {
+  console.error('ERROR:')
+  if(isStream) {
+    if (err.response?.data) {
       err.response?.data.on("data", (data) => {
-        console.log(String(data)); //CONT: test this with String() and without
+        console.log(String(data)); 
       });
     }
     else {
-      console.error(err.response.data);
+      console.error(err);
     }
-  } else {
-    console.error(err);
+  }
+  else {
+    if (err.response?.data) {
+      console.error(err.response?.data?.error);
+    } else {
+      console.error(err.message);
+    }
   }
 }
 
