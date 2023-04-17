@@ -161,7 +161,7 @@ async function handleFileChanged({ filename, name, token }) {
     });
 
   } catch (err) {
-    errorHandler(err);
+    errorHandler({err});
   }
 }
 
@@ -282,7 +282,7 @@ async function handleSignup(values) {
       "Successfully created account. You can now deploy using 'eg deploy'"
     );
   } catch (err) {
-    errorHandler(err);
+    errorHandler({err});
   }
 }
 
