@@ -100,6 +100,7 @@ async function triggerDeploy(values) {
       watcher.on("change", (filename) => {
         handleFileChanged({
           filename,
+          tmpDeployFilename,
           name,
           token,
         });
@@ -145,12 +146,25 @@ async function triggerDeploy(values) {
   }
 }
 
-async function handleFileChanged({ filename, name, token }) {
-  const readStream = fs.createReadStream(filename);
+async function handleFileChanged({ filename, name, tmpDeployFilename, token}) {
+
+  const path = excludeFilenameFromPath(filename);
+
+  await tar.create({
+    gzip: true,
+    file: tmpDeployFilename, //name of the zip file
+    cwd: path, //directory that it will zip
+  },
+  ["./"]
+  );
+
+  const readStream = fs.createReadStream(tmpDeployFilename);
   const form = new FormData();
-  form.append("name", name);
-  form.append("filename", filename);
-  form.append("file", readStream);
+  form.append("name", name); 
+  form.append("localPath", path); //Path with respect to project root, ex: 'src/components/'
+  form.append("filename", filename); //Path with filename included, ex: 'src/index.html'
+  form.append('fileUpload', 'true');
+  form.append("tar", readStream);
 
   const getLengthAsync = promisify(form.getLength.bind(form));
   const contentLength = await getLengthAsync();
@@ -158,7 +172,7 @@ async function handleFileChanged({ filename, name, token }) {
   form.getLengthSync = null;
 
   try {
-    await axios.post(`${baseUrl}/deploy/upload/file`, form, {
+    await axios.post(`${baseUrl}/api/deployments`, form, {
       headers: {
         ...form.getHeaders(),
         "Content-Length": contentLength,
@@ -173,6 +187,8 @@ async function handleFileChanged({ filename, name, token }) {
       console.error(err);
     }
   }
+
+  await fs.remove(tmpDeployFilename);
 }
 
 async function deploy({
@@ -381,6 +397,12 @@ function isDev(dev, port) {
   if(dev) {
     baseUrl = port ? `http://local.engram.sh:${port}` : 'http://local.engram.sh:8000'
   }
+}
+
+function excludeFilenameFromPath(filename) {
+  const path = filename.split('/')
+  path.pop()
+  return path.join('/')
 }
 
 yargs(hideBin(process.argv))
