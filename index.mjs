@@ -148,23 +148,23 @@ async function triggerDeploy(values) {
 
 async function handleFileChanged({ filename, name, tmpDeployFilename, token}) {
 
-  const path = excludeFilenameFromPath(filename);
+  const {path, isolatedFilename} = splitFilenameAndPath(filename);
 
   await tar.create({
     gzip: true,
-    file: tmpDeployFilename, //name of the zip file
-    cwd: path, //directory that it will zip
+    file: tmpDeployFilename, //name of the tar file
+    cwd: `./${path}`,
   },
-  ["./"]
+  [isolatedFilename] //file to tar
   );
 
   const readStream = fs.createReadStream(tmpDeployFilename);
   const form = new FormData();
+  form.append("tar", readStream);
   form.append("name", name); 
-  form.append("localPath", path); //Path with respect to project root, ex: 'src/components/'
+  form.append("localPath", path); //Relative path to project root, ex: 'src/components/'
   form.append("filename", filename); //Path with filename included, ex: 'src/index.html'
   form.append('fileUpload', 'true');
-  form.append("tar", readStream);
 
   const getLengthAsync = promisify(form.getLength.bind(form));
   const contentLength = await getLengthAsync();
@@ -399,10 +399,10 @@ function isDev(dev, port) {
   }
 }
 
-function excludeFilenameFromPath(filename) {
-  const path = filename.split('/')
-  path.pop()
-  return path.join('/')
+function splitFilenameAndPath(filename) {
+  const path = filename.split('/');
+  const isolatedFilename = path.pop();
+  return {path: path.join('/'), isolatedFilename}
 }
 
 yargs(hideBin(process.argv))
