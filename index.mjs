@@ -349,24 +349,38 @@ async function updateConfig(newConfig) {
   await fsPromise.writeFile(configJsonPath, JSON.stringify(newConfig));
 }
 
-async function whoAmI() {
+async function whoAmI(values) {
+  try {
+      isDev(values.dev);
+    
+      const config = await getConfig();
+      if (!config?.token) {
+        console.log("Please login with `eg login`");
+        return;
+      }
+    
+      const { token } = config;
+    
+      const res = await axios.get(`${baseUrl}/api/users/me`, {
+        headers: {
+          "x-access-token": token,
+        },
+      });
 
-  isDev(values.dev);
+      if(res.data.username) {
+        console.log(res.data.username);
+      }
+      else {
+        throw new Error('User not found')
+      }
 
-  const config = await getConfig();
-  if (!config?.token) {
-    console.log("Please login with `eg login`");
-    return;
+  } catch(err) {
+    if (err.response?.data) {
+      console.error(err.response?.data?.error);
+    } else {
+      console.error(err.message);
+    }
   }
-
-  const { token } = config;
-
-  const res = await axios.get(`${baseUrl}/api/users/me`, {
-    headers: {
-      "x-access-token": token,
-    },
-  });
-  console.log(res.data.data);
 }
 
 async function handleNewProject({ template, destination }) {
