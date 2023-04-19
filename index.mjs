@@ -154,8 +154,8 @@ async function handleFileChanged({ filename, name, tmpDeployFilename, token}) {
     gzip: true,
     file: tmpDeployFilename, //name of the tar file
     cwd: `./${path}`,
-  },
-  [isolatedFilename] //file to tar
+    },
+    [isolatedFilename] //file to tar
   );
 
   const readStream = fs.createReadStream(tmpDeployFilename);
