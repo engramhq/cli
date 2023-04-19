@@ -148,22 +148,18 @@ async function triggerDeploy(values) {
 
 async function handleFileChanged({ filename, name, tmpDeployFilename, token}) {
 
-  const {path, isolatedFilename} = splitFilenameAndPath(filename);
-
   await tar.create({
-    gzip: true,
-    file: tmpDeployFilename, //name of the tar file
-    cwd: `./${path}`,
+      gzip: true,
+      file: tmpDeployFilename, //name of the tar file
     },
-    [isolatedFilename] //file to tar
+    [filename] //Relative path to file from project root
   );
 
   const readStream = fs.createReadStream(tmpDeployFilename);
   const form = new FormData();
   form.append("tar", readStream);
   form.append("name", name); 
-  form.append("localPath", path); //Relative path to project root, ex: 'src/components/'
-  form.append("filename", filename); //Path with filename included, ex: 'src/index.html'
+  form.append("filename", filename);
   form.append('fileUpload', 'true');
 
   const getLengthAsync = promisify(form.getLength.bind(form));
@@ -397,12 +393,6 @@ function isDev(dev, port) {
   if(dev) {
     baseUrl = port ? `http://local.engram.sh:${port}` : 'http://local.engram.sh:8000'
   }
-}
-
-function splitFilenameAndPath(filename) {
-  const path = filename.split('/');
-  const isolatedFilename = path.pop();
-  return {path: path.join('/'), isolatedFilename}
 }
 
 yargs(hideBin(process.argv))
