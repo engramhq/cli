@@ -134,7 +134,13 @@ async function triggerDeploy(values) {
       });
 
     } catch (err) {
-      errorHandler({err, isStream: true});
+      if (err.response?.data) {
+        err.response?.data.on("data", (data) => {
+          console.log(String(data));
+        });
+      } else {
+        console.error(err);
+      }
     }
   }
 }
@@ -161,7 +167,11 @@ async function handleFileChanged({ filename, name, token }) {
     });
 
   } catch (err) {
-    errorHandler({err});
+    if (err.response?.data) {
+      console.log(String(err.response?.data));
+    } else {
+      console.error(err);
+    }
   }
 }
 
@@ -254,7 +264,13 @@ async function deploy({
     });
 
   } catch (err) {
-    errorHandler({err, isStream: true});
+    if (err.response?.data) {
+      err.response?.data.on("data", (data) => {
+        console.log(String(data));
+      });
+    } else {
+      console.error(err);
+    }
   }
 
   await fsPromise.unlink(tmpDeployFilename);
@@ -282,7 +298,11 @@ async function handleSignup(values) {
       "Successfully created account. You can now deploy using 'eg deploy'"
     );
   } catch (err) {
-    errorHandler({err});
+    if (err.response?.data) {
+      console.error(err.response?.data?.error);
+    } else {
+      console.error(err.message);
+    }
   }
 }
 
@@ -304,7 +324,11 @@ async function handleLogin(values) {
     updateConfig(res.data);
     console.log(`Successfully logged in as ${username}`);
   } catch (err) {
-    errorHandler({err});
+    if (err.response?.data) {
+      console.error(err.response?.data?.error);
+    } else {
+      console.error(err.message);
+    }
   }
 }
 
@@ -351,7 +375,11 @@ async function whoAmI(values) {
       }
 
   } catch(err) {
-    errorHandler({err})
+    if (err.response?.data) {
+      console.error(err.response?.data?.error);
+    } else {
+      console.error(err.message);
+    }
   }
 }
 
@@ -366,27 +394,6 @@ async function handleNewProject({ template, destination }) {
 function isDev(dev, port) {
   if(dev) {
     baseUrl = port ? `http://local.engram.sh:${port}` : 'http://local.engram.sh:8000'
-  }
-}
-
-function errorHandler({err, isStream}) {
-  console.error('ERROR:')
-  if(isStream) {
-    if (err.response?.data) {
-      err.response?.data.on("data", (data) => {
-        console.log(String(data)); 
-      });
-    }
-    else {
-      console.error(err);
-    }
-  }
-  else {
-    if (err.response?.data) {
-      console.error(err.response?.data?.error);
-    } else {
-      console.error(err.message);
-    }
   }
 }
 
