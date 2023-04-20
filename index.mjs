@@ -159,8 +159,7 @@ async function handleFileChanged({ filename, name, tmpDeployFilename, token}) {
   const form = new FormData();
   form.append("tar", readStream);
   form.append("name", name); 
-  form.append("filename", filename);
-  form.append('fileUpload', 'true');
+  form.append('incremental', 'true');
 
   const getLengthAsync = promisify(form.getLength.bind(form));
   const contentLength = await getLengthAsync();
