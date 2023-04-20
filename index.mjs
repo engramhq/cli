@@ -147,6 +147,7 @@ async function triggerDeploy(values) {
 }
 
 async function handleFileChanged({ filename, name, tmpDeployFilename, token}) {
+  const startTime = new Date().getTime();
 
   await tar.create({
       gzip: true,
@@ -172,8 +173,11 @@ async function handleFileChanged({ filename, name, tmpDeployFilename, token}) {
         ...form.getHeaders(),
         "Content-Length": contentLength,
         "x-access-token": token,
-      },
+      }
     });
+
+    const endTime = new Date().getTime();
+    console.log(`Updated in ${endTime - startTime}ms`);
 
   } catch (err) {
     if (err.response?.data) {
