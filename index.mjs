@@ -100,6 +100,7 @@ async function triggerDeploy(values) {
       watcher.on("change", (filename) => {
         handleFileChanged({
           filename,
+          tmpDeployFilename,
           name,
           token,
         });
@@ -145,12 +146,20 @@ async function triggerDeploy(values) {
   }
 }
 
-async function handleFileChanged({ filename, name, token }) {
-  const readStream = fs.createReadStream(filename);
+async function handleFileChanged({ filename, name, tmpDeployFilename, token}) {
+
+  await tar.create({
+      gzip: true,
+      file: tmpDeployFilename, //name of the tar file
+    },
+    [filename] //Relative path to file from project root
+  );
+
+  const readStream = fs.createReadStream(tmpDeployFilename);
   const form = new FormData();
-  form.append("name", name);
-  form.append("filename", filename);
-  form.append("file", readStream);
+  form.append("tar", readStream);
+  form.append("name", name); 
+  form.append('incremental', 'true');
 
   const getLengthAsync = promisify(form.getLength.bind(form));
   const contentLength = await getLengthAsync();
@@ -158,7 +167,7 @@ async function handleFileChanged({ filename, name, token }) {
   form.getLengthSync = null;
 
   try {
-    await axios.post(`${baseUrl}/deploy/upload/file`, form, {
+    await axios.post(`${baseUrl}/api/deployments`, form, {
       headers: {
         ...form.getHeaders(),
         "Content-Length": contentLength,
@@ -173,6 +182,8 @@ async function handleFileChanged({ filename, name, token }) {
       console.error(err);
     }
   }
+
+  await fs.remove(tmpDeployFilename);
 }
 
 async function deploy({
