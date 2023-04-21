@@ -50,7 +50,7 @@ async function triggerDeploy(values) {
     watch,
     privacy,
     preview,
-    source,
+    source = 'local',
     dev,
     port,
     v1,
@@ -456,19 +456,19 @@ yargs(hideBin(process.argv))
     type: "boolean",
     default: false
   })
-  .option("repo", {
-    alias: "r",
-    type: "string",
-    description: "Repository URL to deploy",
-  })
-  .option("branch", {
-    type: "string",
-    description: "Branch to deploy",
-  })
-  .option("source", {
-    type: "string",
-    description: "Source to deploy from (local|git)"
-  })
+  // .option("repo", {
+  //   alias: "r",
+  //   type: "string",
+  //   description: "Repository URL to deploy",
+  // })
+  // .option("branch", {
+  //   type: "string",
+  //   description: "Branch to deploy",
+  // })
+  // .option("source", {
+  //   type: "string",
+  //   description: "Source to deploy from (local|git)"
+  // })
   .option("v1", {
     type: "boolean",
     description: "Deploy to the old IP"
