@@ -347,6 +347,28 @@ async function handleLogin(values) {
   }
 }
 
+async function handleLogout(values) {
+  isDev(values.dev);
+
+  try {
+    await axios.post(`${baseUrl}/api/users/logout`)
+    try {
+      await fsPromise.access(configJsonPath)
+    } catch{
+      throw new Error('Not logged in, use eg login')
+    }
+    await fsPromise.rm(configJsonPath);
+    console.log('Successfully logged out');
+  } catch(err) {
+    if (err.message) {
+      console.error(err.message)
+    }
+    else {
+      console.error(err)
+    }
+  }
+}
+
 const homeDir = os.homedir();
 const engramConfigFolder = path.join(homeDir, ".engram");
 const configJsonPath = path.join(engramConfigFolder, "config.json");
@@ -370,8 +392,7 @@ async function whoAmI(values) {
     
       const config = await getConfig();
       if (!config?.token) {
-        console.log("Please login with `eg login`");
-        return;
+        throw new Error("Not logged in, use eg login");
       }
     
       const { token } = config;
@@ -386,7 +407,7 @@ async function whoAmI(values) {
         console.log(res.data.username);
       }
       else {
-        throw new Error('User not found')
+        throw new Error('Not logged in, use eg login');
       }
 
   } catch(err) {
@@ -417,7 +438,7 @@ yargs(hideBin(process.argv))
     "new [destination]",
     "creates a new project",
     (yargs) => {
-      return yargs.positional("path", {
+      return yargs.positional("destination", {
         describe: "name of project (used in final URL)",
         default: "./",
       });
@@ -507,5 +528,8 @@ yargs(hideBin(process.argv))
     handleLogin
   )
   .command("whoami", "returns current username", () => {}, whoAmI)
+  .command('logout', 'log out of your engram cloud account', () => {}, handleLogout)
   .command("preview", "Similar to eg deploy but enables preview UI (Comments, pins, etc)", () => {}, triggerPreview)
+  .demandCommand(1)
+  .strict()
   .parse();
